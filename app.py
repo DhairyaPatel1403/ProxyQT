@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, Response
 import requests
 
 app = Flask(__name__)
@@ -29,16 +29,23 @@ HTML_FORM = """
 def index():
     return render_template_string(HTML_FORM)
 
-@app.route('/proxy', methods=['POST'])
+@app.route('/proxy', methods=['GET', 'POST'])
 def proxy():
-    url = request.form.get('url')
-    if url:
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            content = response.text
-        except requests.exceptions.RequestException as e:
-            content = f"An error occurred: {e}"
-        return render_template_string(HTML_FORM, response=content, requested_url=url)
-    return render_template_string(HTML_FORM, response="Bad Request: URL parameter is missing", requested_url=None)
-
+    if request.method == 'POST':
+        url = request.form.get('url')
+        if url:
+            try:
+                # Make the request to the specified URL
+                resp = requests.get(url)
+                # Return the response content and headers
+                return Response(resp.content, headers=dict(resp.headers))
+            except Exception as e:
+                return f"An error occurred: {e}"
+        else:
+            return "Please provide a URL to proxy."
+    return '''
+        <form method="post">
+            Enter URL to Proxy: <input type="text" name="url">
+            <input type="submit" value="Proxy">
+        </form>
+    '''
