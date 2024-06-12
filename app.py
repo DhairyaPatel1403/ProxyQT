@@ -19,7 +19,7 @@ HTML_FORM = """
     </form>
     {% if response %}
         <h2>Response from {{ requested_url }}</h2>
-        <pre>{{ response }}</pre>
+        <pre>{{ response|safe }}</pre>
     {% endif %}
 </body>
 </html>
@@ -29,23 +29,20 @@ HTML_FORM = """
 def index():
     return render_template_string(HTML_FORM)
 
-@app.route('/proxy', methods=['GET', 'POST'])
+@app.route('/proxy', methods=['POST'])
 def proxy():
-    if request.method == 'POST':
-        url = request.form.get('url')
-        if url:
-            try:
-                # Make the request to the specified URL
-                resp = requests.get(url)
-                # Return the response content and headers
-                return Response(resp.content, headers=dict(resp.headers))
-            except Exception as e:
-                return f"An error occurred: {e}"
-        else:
-            return "Please provide a URL to proxy."
-    return '''
-        <form method="post">
-            Enter URL to Proxy: <input type="text" name="url">
-            <input type="submit" value="Proxy">
-        </form>
-    '''
+    url = request.form.get('url')
+    if url:
+        try:
+            # Make the request to the specified URL
+            resp = requests.get(url)
+            resp.raise_for_status()
+            # Return the response content to be rendered
+            content = resp.text
+            return render_template_string(HTML_FORM, response=content, requested_url=url)
+        except requests.exceptions.RequestException as e:
+            # Return the error message to be rendered
+            return render_template_string(HTML_FORM, response=f"An error occurred: {e}", requested_url=url)
+    return render_template_string(HTML_FORM, response="Bad Request: URL parameter is missing", requested_url=None)
+
+
