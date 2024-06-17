@@ -71,5 +71,3 @@ def fetch_url():
 
     return render_template_string(HTML_FORM, response="Bad Request: URL parameter is missing", requested_url=None)
 
-if __name__ == '__main__':
-    app.run(debug=True)
